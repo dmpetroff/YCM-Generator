@@ -136,7 +136,10 @@ def main():
             else:
                 lang, flags = ("c++", cxx_flags)
 
-            generate_conf(["-x", lang] + flags, config_file)
+            if force_lang:
+                lang += ["-x", force_lang]
+                
+            generate_conf(flags, config_file)
             print("Created {} config file with {} {} flags".format(output_format.upper(), len(flags), lang.upper()))
 
 
