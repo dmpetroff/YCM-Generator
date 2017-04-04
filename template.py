@@ -92,16 +92,28 @@ def IsHeaderFile( filename ):
   extension = os.path.splitext( filename )[ 1 ]
   return extension in [ '.H', '.h', '.hxx', '.hpp', '.hh' ]
 
-def LangFlags( filename ):
+def filter_out_cxx_std( flags ):
+  return [f for f in flags if not (f[:5] == '-std=' and f[5:].find('++') != -1)]
+
+def filter_out_c_std( flags ):
+  return [f for f in flags if not (f[:5] == '-std=' and f[5:].find('++') == -1)]
+
+def LangFlags( filename, flags ):
   extension = os.path.splitext( filename )[ 1 ]
   langmap = {
-    'c++': [ 'hh', 'hpp', 'cc', 'cpp', 'cxx' ],
-    'c': [ 'h', 'c' ]
+    'c++': [ '.hh', '.hpp', '.cc', '.cpp', '.cxx' ],
+    'c': [ '.h', '.c' ]
   }
-  for lang, extlist in langmap:
+  for lang, extlist in langmap.iteritems():
     if extension in extlist:
-      return [ '-x', lang ]
-  return []
+      if lang == 'c++':
+        fflags = filter_out_c_std(flags)
+      elif lang == 'c':
+        fflags = filter_out_cxx_std(flags)
+      else:
+        fflags = flags
+      return [ '-x', lang ] + fflags
+  return flags
 
 
 def GetCompilationInfoForFile( filename ):
@@ -139,7 +151,7 @@ def FlagsForFile( filename, **kwargs ):
     final_flags = MakeRelativePathsInFlagsAbsolute( flags, relative_to )
 
   if '-x' not in final_flags:
-    final_flags += LangFlags( filename )
+    final_flags = LangFlags( filename, final_flags )
 
   return {
     'flags': final_flags,
